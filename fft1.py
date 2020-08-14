@@ -60,17 +60,18 @@ class FFT2:
             ampX = list(map(lambda x:x/max_ampX,ampX))
 
         if not without_peaks:
-            for i in self.peaks:
-                freq.append(i/self.dur)
-                amp.append(np.abs(self.res[i]))
-                phase.append(math.atan2(np.imag(self.res[i]),np.real(self.res[i]))*self.dur)
-                max_amp = max(max_amp,np.abs(self.res[i]))
-            amp = list(map(lambda x:x/max_amp,amp))
+            for i in self.peaksY:
+                freqY.append(i)
+                ampY.append(np.abs(self.Y[i]))
+                phaseY.append(math.atan2(np.imag(self.Y[i]), np.real(self.Y[i])))
+                max_ampY = max(max_ampY, np.abs(self.Y[i]))
+            ampY = list(map(lambda x: x / max_ampY, ampY))
         else:
-            for i in range(len(self.res)):
-                if i/self.dur > 0:
-                    freq.append(i/self.dur)
-                    amp.append(np.abs(self.res[i]))
-                    phase.append(math.atan2(np.imag(self.res[i]),np.real(self.res[i]))*self.dur)
-                    max_amp = max(max_amp,np.abs(self.res[i]))
-            amp = list(map(lambda x:x/max_amp,amp))
+            for i in range(len(self.Y)):
+                if i > 0:
+                    freqY.append(i)
+                    ampY.append(np.abs(self.Y[i]))
+                    phaseY.append(math.atan2(np.imag(self.Y[i]), np.real(self.Y[i])))
+                    max_ampY = max(max_ampY, np.abs(self.Y[i]))
+            ampY = list(map(lambda x: x / max_ampY, ampY))
+        return (freqX,freqY,ampX,ampY,phaseX,phaseY)
