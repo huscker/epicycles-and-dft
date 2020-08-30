@@ -16,4 +16,5 @@ class Epicycle:
         for i in self.children:
             coords += numpy.array([numpy.cos(time*i[1]+i[2]+numpy.pi),numpy.sin(time*i[1]+i[2]+numpy.pi)])*i[0]
             res.append(numpy.array(coords))
+        print(res)
         return res
