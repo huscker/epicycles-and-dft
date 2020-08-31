@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.signal
 import math
-import matplotlib.pyplot as plt
 
 
 class FFT1:
@@ -86,7 +85,7 @@ class FFT2:
 
 class FFT3:
     def __init__(self, pts):
-        self.X = myfft(list(map(lambda x: complex(x[0], x[1]), pts)))
+        self.X = scipy.fft.fft(list(map(lambda x: complex(x[0], x[1]), pts)))
 
     def get_freq_amp_phase(self):
         freq = list()
