@@ -1,15 +1,10 @@
-import pygame, numpy
+import pygame, numpy, sys, copy
 from epicycles import Epicycle
-from fft1 import FFT1, FFT2, FFT3
-
-import sys
-
+from fft import FFT_1D, FFT_2D_DOUBLE, FFT_2D_PURE
 from pygame.locals import *
-
 
 def get_points(s):
     return list(map(lambda x: list(map(lambda y: float(y), x.split(','))), s.split()))
-
 
 def update_data(pts):
     minX = 10e10
@@ -26,8 +21,9 @@ def update_data(pts):
         i[1] = ((i[1] - minY) / (maxY - minY) - 0.5) * 2
     return pts
 
+# input data
 
-pts = update_data(get_points('''122.26765546658731,156.36515923543936 
+user_pts = update_data(get_points('''122.26765546658731,156.36515923543936 
 118.30763107591429,153.36871294433425
 114.11028529087551,150.64245379161753
 110.09607883962155,147.6865277583647
@@ -73,17 +69,30 @@ pts = update_data(get_points('''122.26765546658731,156.36515923543936
 112.94010624742513,140.23288916548645
 115.37268628094962,144.60785001705216
 117.80736420464726,148.98409562324497
-120.26479668048115,153.33520405504197'''))  # CHANGE THIS LINE ! CHANGE THIS LINE ! CHANGE THIS LINE ! CHANGE THIS LINE !
-choice = 'FFT3'  # CHANGE THIS LINE ! CHANGE THIS LINE ! CHANGE THIS LINE ! CHANGE THIS LINE ! CHANGE THIS LINE ! CHANGE THIS LINE ! CHANGE THIS LINE !
+120.26479668048115,153.33520405504197'''))
+pts = list()
 
-pygame.init()
+# render options
 fps = 60
-fpsClock = pygame.time.Clock()
-
 width, height = 1500, 1000
 num_of_points = 2000
 dist_from_origin = 400
 sensitivity = 5
+time_scale = 1/4000.0
+# modes:
+# FFT1 - 1 epicycle, 1D input data
+# FFT2 - 2 epicycles, 2D input data
+# FFT3 - 1 epicycle, 2D input data
+choice = 'FFT2'
+if choice == 'FFT1':
+    def fft_1d_funct(x):
+        if numpy.sin(x) >= 0:
+            return 1
+        else:
+            return -1
+
+pygame.init()
+fpsClock = pygame.time.Clock()
 screen = pygame.display.set_mode((width, height))
 surface = pygame.Surface((width, height))
 translate = numpy.array([-dist_from_origin, 0], dtype=numpy.int)
@@ -98,49 +107,46 @@ scale = 100
 scale_val = 1
 movementUnlocked = False
 isScalling = False
-
-if choice == 'FFT1':
-    def f(x):
-        if numpy.sin(x) >= 0:
-            return 1.0
-        else:
-            return -1.0
-
-
-    def f(x):
-        return x
-
-
-    fft1 = FFT1(f, 10, 600)
-    freq, amp, phase = fft1.get_freq_amp_phase(without_peaks=True)
-    ep = Epicycle()
-    for i in range(len(freq)):
-        ep.push_back(amp[i], freq[i], phase[i])
-    amps = ep.get_amps()
-elif choice == 'FFT2':
-    fft2 = FFT2(pts)
-    freqX, freqY, ampX, ampY, phaseX, phaseY = fft2.get_freq_amp_phase(without_peaks=True)
-    print(fft2.get_freq_amp_phase(without_peaks=True))
-    epX = Epicycle()
-    epY = Epicycle()
-    for i in range(len(freqX) - 1, -1, -1):
-        epX.push_back(ampX[i], freqX[i], phaseX[i])
-    for i in range(len(freqY)):
-        epY.push_back(ampY[i], freqY[i], phaseY[i])
-elif choice == 'FFT3':
-    fft3 = FFT3(pts)
-    freq, amp, phase = fft3.get_freq_amp_phase()
-    ep = Epicycle()
-    for i in range(len(freq)):
-        ep.push_back(amp[i], freq[i], phase[i])
-# Game loop.
+isAdding = False
+isShowing = True
+pygame.time.set_timer(pygame.MIDIOUT,50)
+ep,epX,epY = Epicycle(),Epicycle(),Epicycle()
+def redraw():
+    global ep,epX,epY,pts,user_pts,amps,amp,freq,phase,freqX,freqY,ampX,ampY,phaseX,phaseY
+    pts.clear()
+    pts = copy.deepcopy(user_pts)
+    if choice == 'FFT1': 
+        ep = Epicycle()
+        fft_parser = FFT_1D(fft_1d_funct, 10, 600)
+        freq, amp, phase = fft_parser.get_freq_amp_phase()
+        for i in range(len(freq)):
+            ep.push_back(amp[i], freq[i], phase[i])
+        amps = ep.get_amps()
+    elif choice == 'FFT2':
+        epX = Epicycle()
+        epY = Epicycle()
+        fft_parser = FFT_2D_DOUBLE(pts)
+        freqX, freqY, ampX, ampY, phaseX, phaseY = fft_parser.get_freq_amp_phase()
+        for i in range(len(freqX) - 1, -1, -1):
+            epX.push_back(ampX[i], freqX[i], phaseX[i])
+        for i in range(len(freqY)):
+            epY.push_back(ampY[i], freqY[i], phaseY[i])
+    elif choice == 'FFT3':
+        fft_parser = FFT_2D_PURE(pts)
+        freq, amp, phase = fft_parser.get_freq_amp_phase()
+        ep = Epicycle()
+        for i in range(len(freq)):
+            ep.push_back(amp[i], freq[i], phase[i])
+redraw()
 while True:
-    # screen.fill((0, 0, 0))
     surface.fill((0, 0, 0))
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
+        if event.type == pygame.MIDIOUT:
+            if isAdding:
+                user_pts.append((-numpy.array(pygame.mouse.get_pos())+zero)/scale)
         if event.type == pygame.MOUSEMOTION:
             if movementUnlocked and not isScalling:
                 pos[0] += -event.rel[0] / sensitivity
@@ -149,27 +155,42 @@ while True:
                 scale_val = min(max(1.0, scale_val + event.rel[1] / 20.0), 20.0)
                 scale = int(100 * scale_val)
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 2:
+            if event.button == 1:
                 movementUnlocked = True
+            if event.button == 3:
+                isAdding = True
         if event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 2:
+            if event.button == 1:
                 movementUnlocked = False
                 pos[0] = 0
                 pos[1] = 0
+            if event.button == 3:
+                isAdding = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_c:
                 isScalling = True
+            if event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
+            if event.key == pygame.K_SPACE:
+                points.clear()
+                pointsX.clear()
+                pointsY.clear()
+                redraw()
+            if event.key == pygame.K_e:
+                user_pts.clear()
+            if event.key == pygame.K_s:
+                isShowing = not isShowing
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_c:
                 isScalling = False
 
     zero += numpy.array([pos[0], pos[1]], dtype=numpy.int)
     if choice == 'FFT1':
-        coords = ep.get_points(pygame.time.get_ticks() / 1000.0)
+        coords = ep.get_points(pygame.time.get_ticks()*time_scale)
         points.append(coords[-1][1])
         if len(points) > num_of_points + 10:
             points.remove(points[0])
-        # print(points)
         for i in range(len(coords[:-1])):
             if (int(amps[i] * scale) > 0):
                 pygame.draw.circle(surface, pygame.Color(100, 100, 100),
@@ -190,13 +211,8 @@ while True:
             surface.set_at((zero[0] - i + translate2[0], zero[1] + int(scale * points[i]) + translate2[1]),
                            pygame.Color('yellow'))
     elif choice == 'FFT2':
-        # '''
-        for i in pts:
-            surface.set_at((zero[0] + int(i[0] * scale) + -translate3[0], zero[1] - int(i[1] * scale) - translate3[1]),
-                           pygame.Color('green'))
-        # '''
-        coordsX = epX.get_points(pygame.time.get_ticks() / 7000.0)
-        coordsY = epY.get_points(pygame.time.get_ticks() / 7000.0)
+        coordsX = epX.get_points(pygame.time.get_ticks()*time_scale)
+        coordsY = epY.get_points(pygame.time.get_ticks()*time_scale)
         pointsX.append(coordsX[-1][0])
         pointsY.append(coordsY[-1][0])
         if len(pointsX) > num_of_points + 10:
@@ -225,7 +241,7 @@ while True:
             pygame.draw.line(surface, pygame.Color('white'),
                              zero + translate3 - numpy.array(coordsX[-1] * scale, dtype=numpy.int),
                              zero + translate3 - numpy.array(scale * coordsX[-2], dtype=numpy.int), 2)
-        if len(coordsX) > 1:
+        if len(coordsY) > 1:
             pygame.draw.line(surface, pygame.Color('white'),
                              zero + translate + numpy.array(scale * numpy.array([coordsY[-1][1], coordsY[-1][0]]),
                                                             dtype=numpy.int),
@@ -243,7 +259,6 @@ while True:
                            pygame.Color('white'))
     elif choice == 'FFT3':
         coords = ep.get_points(pygame.time.get_ticks() / 1000.0)
-        print(scale * numpy.array(coords, dtype=numpy.int))
         points.append(coords[-1])
         if len(points) > num_of_points + 10:
             points.remove(points[0])
@@ -265,6 +280,10 @@ while True:
         for i in range(-1, -len(points[:num_of_points]), -1):
             surface.set_at((zero[0] - int(scale * points[i][0]), zero[1] + int(scale * points[i][1])),
                            pygame.Color('yellow'))
+    if choice != 'FFT1' and isShowing:
+        for i in range(-1,-len(user_pts),-1):
+            surface.set_at((zero[0] - int(scale * user_pts[i][0]), zero[1] + int(scale * user_pts[i][1])),
+                           pygame.Color('white'))
     surface = pygame.transform.flip(surface, False, True)
     screen.blit(surface, (0, 0))
     pygame.display.flip()
