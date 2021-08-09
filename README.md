@@ -1,5 +1,6 @@
 # Epicycles and DFT
-Simple visualisation of Fourier transform in 3 modes
+Simple visualisation of Fourier transform in 3 modes  
+![](http://huscker.github.io/various/epicycles-and-dft.gif)
 ## Installation
 #### Ubuntu
 Install python3:  
