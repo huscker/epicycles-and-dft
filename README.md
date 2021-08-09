@@ -2,7 +2,7 @@
 Simple visualisation of Fourier transform in 3 modes
 ## Installation
 #### Ubuntu
-Install python3:
+Install python3:  
 `sudo apt update`  
 `sudo apt install python3 python3-pip`  
 Install dependencies:  
