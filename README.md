@@ -3,15 +3,15 @@ Simple visualisation of Fourier transform in 3 modes
 ## Installation
 #### Ubuntu
 Install python3:
-`sudo apt update`'
-`sudo apt install python3 python3-pip`
-Install dependencies:
-`pip3 install numpy scipy pygame`
+`sudo apt update`  
+`sudo apt install python3 python3-pip`  
+Install dependencies:  
+`pip3 install numpy scipy pygame`  
 #### Arch Linux
-Install python3:
-`pacman -Sy python python-pip`
-Install dependencies:
-`pip3 install numpy scipy pygame`
+Install python3:  
+`pacman -Sy python python-pip`  
+Install dependencies:  
+`pip3 install numpy scipy pygame`  
 ## Usage
 `python main.py`
 #### Controls:
